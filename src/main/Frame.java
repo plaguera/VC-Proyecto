@@ -5,15 +5,21 @@ import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.EventQueue;
 import java.awt.FileDialog;
+import java.awt.FlowLayout;
 
+import javax.imageio.ImageIO;
 import javax.swing.BorderFactory;
+import javax.swing.ImageIcon;
 import javax.swing.JButton;
+import javax.swing.JDialog;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.border.EmptyBorder;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import javax.swing.JTabbedPane;
+import javax.swing.JTable;
+import javax.swing.KeyStroke;
 import javax.swing.SwingConstants;
 
 import java.awt.GridLayout;
@@ -24,10 +30,13 @@ import javax.swing.JOptionPane;
 
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseMotionAdapter;
 import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.awt.Label;
@@ -40,13 +49,15 @@ public class Frame extends JFrame {
 	private JPanel contentPane;
 	private JTabbedPane tabbedPane;
 	private List<BufferedImage> images;
+	private List<Image> imagePanels;
 
 	private int imageIndex;
-	JMenuItem mntmOpen, mntmCloseTab;
+	JMenuItem mntmOpen, mntmSave, mntmCloseTab;
 	private Label resolutionLabel, xCoordLabel, yCoordLabel;
 	private JPanel coordLabelsPanel;
 	
-	private JButton btnGrayScale;
+	private JButton btnGrayScale, btnShowOriginal, btnProperties;
+	private JDialog dialogProperties;
 
 	/**
 	 * Launch the application.
@@ -76,10 +87,18 @@ public class Frame extends JFrame {
 
 		JMenu mnFile = new JMenu("File");
 		menuBar.add(mnFile);
-		mntmOpen = new JMenuItem("Open");
+		mntmOpen = new JMenuItem("Open...");
+		mntmOpen.setAccelerator(KeyStroke.getKeyStroke(
+		        KeyEvent.VK_O, ActionEvent.CTRL_MASK));
+		mntmSave = new JMenuItem("Save...");
+		mntmSave.setAccelerator(KeyStroke.getKeyStroke(
+		        KeyEvent.VK_S, ActionEvent.CTRL_MASK));
 		mntmCloseTab = new JMenuItem("Close Tab");
+		mntmCloseTab.setAccelerator(KeyStroke.getKeyStroke(
+		        KeyEvent.VK_W, ActionEvent.CTRL_MASK));
 
 		mnFile.add(mntmOpen);
+		mnFile.add(mntmSave);
 		mnFile.add(mntmCloseTab);
 
 		JMenu mnEdit = new JMenu("Edit");
@@ -113,30 +132,54 @@ public class Frame extends JFrame {
 		tabbedPane.setAlignmentX(SwingConstants.CENTER);
 		contentPane.add(tabbedPane, BorderLayout.CENTER);
 
-		JPanel buttonBar = new JPanel(new GridLayout(1, 5));
-		btnGrayScale = new JButton("GrayScale");
+		JPanel buttonBar = new JPanel(new FlowLayout());
+		btnGrayScale = new JButton();
+		btnGrayScale.setPreferredSize(new Dimension(48, 48));
+		btnGrayScale.setHorizontalTextPosition(SwingConstants.CENTER);
+		btnShowOriginal = new JButton();
+		btnShowOriginal.setPreferredSize(new Dimension(48, 48));
+		btnShowOriginal.setHorizontalTextPosition(SwingConstants.CENTER);
+		btnProperties = new JButton();
+		btnProperties.setPreferredSize(new Dimension(48, 48));
+		btnProperties.setHorizontalTextPosition(SwingConstants.CENTER);
+		
+		try {
+			btnGrayScale.setIcon(new ImageIcon("grayscale.png"));
+			btnShowOriginal.setIcon(new ImageIcon("original.png"));
+			btnProperties.setIcon(new ImageIcon("properties.png"));
+		  } catch (Exception ex) {
+		    System.out.println(ex);
+		  }
+		System.out.println("Working Directory = " +
+	              System.getProperty("user.dir"));
 		buttonBar.add(btnGrayScale);
-		buttonBar.add(new JButton("2"));
-		buttonBar.add(new JButton("3"));
+		buttonBar.add(btnShowOriginal);
+		buttonBar.add(btnProperties);
 		buttonBar.add(new JButton("4"));
 		buttonBar.add(new JButton("5"));
+		buttonBar.add(new JButton("6"));
+		buttonBar.add(new JButton("7"));
+		buttonBar.add(new JButton("8"));
+		buttonBar.add(new JButton("9"));
+		buttonBar.add(new JButton("10"));
 		
 		contentPane.add(buttonBar, BorderLayout.NORTH);
 		
 		images = new ArrayList<BufferedImage>();
+		imagePanels = new ArrayList<Image>();
 		imageIndex = -1;
 		setUpListeners();
 
 	}
 
 	private void setUpListeners() {
-		FileDialog fc = new FileDialog(this, "Choose a file", FileDialog.LOAD);
+		FileDialog fcLoad = new FileDialog(this, "Open Image...", FileDialog.LOAD);
 		mntmOpen.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				fc.setVisible(true);
-				String fn = fc.getFile();
+				fcLoad.setVisible(true);
+				String fn = fcLoad.getDirectory() + fcLoad.getFile();
 				if (fn == null)
-					System.out.println("You cancelled the choice");
+					System.out.println("Cancelled Open");
 				else {
 					System.out.println("You chose '" + fn + "'");
 					Image newImage = new Image(fn);
@@ -151,16 +194,41 @@ public class Frame extends JFrame {
 							repaint();
 						}
 					});
-					tabbedPane.addTab(fn, newImage);
+					imagePanels.add(newImage);
+					tabbedPane.addTab(fcLoad.getFile(), newImage);
 					tabbedPane.setSelectedIndex(imageIndex);
 					tabbedPane.repaint();
 				}
 			}
 		});
+		FileDialog fcSave = new FileDialog(this, "Save Image...", FileDialog.SAVE);
+		mntmSave.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				fcSave.setVisible(true);
+				String fn = fcSave.getDirectory() + fcSave.getFile();
+				System.out.println(fcSave.getDirectory());
+				if (fn == null)
+					System.out.println("Cancelled Save");
+				else {
+					try {
+					    // retrieve image
+					    BufferedImage image = images.get(imageIndex);
+					    File outputfile = new File(fcSave.getFile());
+					    ImageIO.write(image, "jpg", outputfile);
+					    System.out.println("Saved as '" + fn + "'");
+					} catch (IOException e1) {
+						e1.printStackTrace();
+					}
+				}
+			}
+		});
 		mntmCloseTab.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				if (imageIndex > -1)
+				if (imageIndex > -1) {
+					images.remove(imageIndex);
+					imagePanels.remove(imageIndex);
 					tabbedPane.remove(imageIndex--);
+				}
 			}
 		});
 		tabbedPane.addChangeListener(new ChangeListener() {
@@ -177,6 +245,8 @@ public class Frame extends JFrame {
 		btnGrayScale.addMouseListener(new MouseAdapter() {
 			@Override
 			public void mouseClicked(MouseEvent e) {
+				if(imageIndex < 0)
+					return;
 				BufferedImage aux = images.get(imageIndex);
 				for(int i = 0; i < aux.getWidth(); i++)
 					for(int j = 0; j < aux.getHeight(); j++) {
@@ -193,6 +263,42 @@ public class Frame extends JFrame {
 				tabbedPane.repaint();
 			}
 		});
+		
+		btnShowOriginal.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseClicked(MouseEvent e) {
+				if(imageIndex < 0)
+					return;
+				if(imagePanels.get(imageIndex).isShowOriginal())
+					imagePanels.get(imageIndex).setShowOriginal(false);
+				else
+					imagePanels.get(imageIndex).setShowOriginal(true);
+				imagePanels.get(imageIndex).repaint();
+			}
+		});
+		
+		dialogProperties = new JDialog(this, true);
+		btnProperties.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseClicked(MouseEvent e) {
+				
+				Object[][] data = {
+					    {"Format: ", "0"},
+					    {"Histogram: ", "Smith"},
+					    {"Resolution: ", "Smith"},
+					    {"Contrast Ratio: ", "Smith"},
+					    {"Brightness and Contrast: ", "Smith"},
+					    {"Entropy: ", "Smith"},
+					    {"Position and Gray Levels: ", "Smith"}
+					};
+				String[] columnNames = {"Property", "Value"};
+				JTable table = new JTable(data, columnNames);
+				dialogProperties.add(table);
+				dialogProperties.pack();
+				dialogProperties.setVisible(true); // blocks until dialog is closed
+			}
+		});
+		
 	}
 	
 	public static Dimension getScaledDimension(Dimension imgSize, Dimension boundary) {

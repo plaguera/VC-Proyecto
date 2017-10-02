@@ -12,36 +12,50 @@ import javax.swing.JPanel;
 
 public class Image extends JPanel {
 
-	private BufferedImage image;
+	private BufferedImage image, original;
 	private String path;
+	private boolean showOriginal;
 
 	public Image(String file) {
-		setLayout(new GridLayout(1, 2));
 		setPath(file);
 		try {
 			setImage(ImageIO.read(new File(file)));
+			setOriginal(ImageIO.read(new File(file)));
+			setShowOriginal(false);
 		} catch (IOException ex) {
-			// handle exception...
+			ex.printStackTrace();
 		}
 	}
-	
+
 	@Override
-    protected void paintComponent(Graphics g) {
-        super.paintComponent(g);
-        Dimension dim = Frame.getScaledDimension(new Dimension(image.getWidth(), image.getHeight()), new Dimension(getWidth(), getHeight()));
-        int width = dim.width;
-        int height = dim.height;
-        g.drawImage(image, 0, 0, width, height, this); // see javadoc for more info on the parameters            
-    }
+	protected void paintComponent(Graphics g) {
+		super.paintComponent(g);
+		Dimension dim = Frame.getScaledDimension(new Dimension(image.getWidth(), image.getHeight()),
+				new Dimension(getWidth(), getHeight()));
+		if (isShowOriginal())
+			g.drawImage(original, 0, 0, dim.width, dim.height, this); // see javadoc for more info on the parameters
+		else
+			g.drawImage(image, 0, 0, dim.width, dim.height, this); // see javadoc for more info on the parameters
+	}
 
 	/** @return the image */
 	public BufferedImage getImage() {
 		return image;
 	}
 
+	/** @return the image */
+	public BufferedImage getOriginal() {
+		return original;
+	}
+
 	/* @param image the image to set */
-	public void setImage(BufferedImage image) {
+	private void setImage(BufferedImage image) {
 		this.image = image;
+	}
+
+	/* @param image the original image to set */
+	public void setOriginal(BufferedImage original) {
+		this.original = original;
 	}
 
 	/** @return the path */
@@ -49,10 +63,27 @@ public class Image extends JPanel {
 		return path;
 	}
 
-	/** @param path
-	 *            the path to set */
+	/**
+	 * @param path
+	 *            the path to set
+	 */
 	public void setPath(String path) {
 		this.path = path;
+	}
+
+	/**
+	 * @return the showOriginal
+	 */
+	public boolean isShowOriginal() {
+		return showOriginal;
+	}
+
+	/**
+	 * @param showOriginal
+	 *            the showOriginal to set
+	 */
+	public void setShowOriginal(boolean showOriginal) {
+		this.showOriginal = showOriginal;
 	}
 
 }
