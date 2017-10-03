@@ -14,9 +14,11 @@ import javax.swing.JButton;
 import javax.swing.JDialog;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
+import javax.swing.JScrollPane;
 import javax.swing.border.EmptyBorder;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
+
 import javax.swing.JTabbedPane;
 import javax.swing.JTable;
 import javax.swing.KeyStroke;
@@ -26,7 +28,6 @@ import java.awt.GridLayout;
 import javax.swing.JMenuBar;
 import javax.swing.JMenu;
 import javax.swing.JMenuItem;
-import javax.swing.JOptionPane;
 
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -49,14 +50,14 @@ public class Frame extends JFrame {
 	private JPanel contentPane;
 	private JTabbedPane tabbedPane;
 	private List<BufferedImage> images;
-	private List<Image> imagePanels;
+	private List<ImagePanel> imagePanels;
 
 	private int imageIndex;
 	JMenuItem mntmOpen, mntmSave, mntmCloseTab;
 	private Label resolutionLabel, xCoordLabel, yCoordLabel;
 	private JPanel coordLabelsPanel;
-	
-	private JButton btnGrayScale, btnShowOriginal, btnProperties;
+
+	private JButton btnGrayScale, btnShowOriginal, btnProperties, btnHistogram;
 	private JDialog dialogProperties;
 
 	/**
@@ -88,14 +89,11 @@ public class Frame extends JFrame {
 		JMenu mnFile = new JMenu("File");
 		menuBar.add(mnFile);
 		mntmOpen = new JMenuItem("Open...");
-		mntmOpen.setAccelerator(KeyStroke.getKeyStroke(
-		        KeyEvent.VK_O, ActionEvent.CTRL_MASK));
+		mntmOpen.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_O, ActionEvent.CTRL_MASK));
 		mntmSave = new JMenuItem("Save...");
-		mntmSave.setAccelerator(KeyStroke.getKeyStroke(
-		        KeyEvent.VK_S, ActionEvent.CTRL_MASK));
+		mntmSave.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_S, ActionEvent.CTRL_MASK));
 		mntmCloseTab = new JMenuItem("Close Tab");
-		mntmCloseTab.setAccelerator(KeyStroke.getKeyStroke(
-		        KeyEvent.VK_W, ActionEvent.CTRL_MASK));
+		mntmCloseTab.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_W, ActionEvent.CTRL_MASK));
 
 		mnFile.add(mntmOpen);
 		mnFile.add(mntmSave);
@@ -136,37 +134,43 @@ public class Frame extends JFrame {
 		btnGrayScale = new JButton();
 		btnGrayScale.setPreferredSize(new Dimension(48, 48));
 		btnGrayScale.setHorizontalTextPosition(SwingConstants.CENTER);
+
 		btnShowOriginal = new JButton();
 		btnShowOriginal.setPreferredSize(new Dimension(48, 48));
 		btnShowOriginal.setHorizontalTextPosition(SwingConstants.CENTER);
+
 		btnProperties = new JButton();
 		btnProperties.setPreferredSize(new Dimension(48, 48));
 		btnProperties.setHorizontalTextPosition(SwingConstants.CENTER);
 		
+		btnHistogram = new JButton();
+		btnHistogram.setPreferredSize(new Dimension(48, 48));
+		btnHistogram.setHorizontalTextPosition(SwingConstants.CENTER);
+
 		try {
 			btnGrayScale.setIcon(new ImageIcon("grayscale.png"));
 			btnShowOriginal.setIcon(new ImageIcon("original.png"));
 			btnProperties.setIcon(new ImageIcon("properties.png"));
-		  } catch (Exception ex) {
-		    System.out.println(ex);
-		  }
-		System.out.println("Working Directory = " +
-	              System.getProperty("user.dir"));
+			btnHistogram.setIcon(new ImageIcon("histogram.ico"));
+		} catch (Exception ex) {
+			System.out.println(ex);
+		}
+		System.out.println("Working Directory = " + System.getProperty("user.dir"));
 		buttonBar.add(btnGrayScale);
 		buttonBar.add(btnShowOriginal);
 		buttonBar.add(btnProperties);
-		buttonBar.add(new JButton("4"));
+		buttonBar.add(btnHistogram);
 		buttonBar.add(new JButton("5"));
 		buttonBar.add(new JButton("6"));
 		buttonBar.add(new JButton("7"));
 		buttonBar.add(new JButton("8"));
 		buttonBar.add(new JButton("9"));
 		buttonBar.add(new JButton("10"));
-		
+
 		contentPane.add(buttonBar, BorderLayout.NORTH);
-		
+
 		images = new ArrayList<BufferedImage>();
-		imagePanels = new ArrayList<Image>();
+		imagePanels = new ArrayList<ImagePanel>();
 		imageIndex = -1;
 		setUpListeners();
 
@@ -182,7 +186,7 @@ public class Frame extends JFrame {
 					System.out.println("Cancelled Open");
 				else {
 					System.out.println("You chose '" + fn + "'");
-					Image newImage = new Image(fn);
+					ImagePanel newImage = new ImagePanel(fn);
 					images.add(newImage.getImage());
 					imageIndex++;
 					newImage.setBorder(BorderFactory.createEmptyBorder());
@@ -211,11 +215,11 @@ public class Frame extends JFrame {
 					System.out.println("Cancelled Save");
 				else {
 					try {
-					    // retrieve image
-					    BufferedImage image = images.get(imageIndex);
-					    File outputfile = new File(fcSave.getFile());
-					    ImageIO.write(image, "jpg", outputfile);
-					    System.out.println("Saved as '" + fn + "'");
+						// retrieve image
+						BufferedImage image = images.get(imageIndex);
+						File outputfile = new File(fcSave.getFile());
+						ImageIO.write(image, "jpg", outputfile);
+						System.out.println("Saved as '" + fn + "'");
 					} catch (IOException e1) {
 						e1.printStackTrace();
 					}
@@ -233,7 +237,7 @@ public class Frame extends JFrame {
 		});
 		tabbedPane.addChangeListener(new ChangeListener() {
 			public void stateChanged(ChangeEvent e) {
-				if(imageIndex < 0)
+				if (imageIndex < 0)
 					return;
 				int width = images.get(imageIndex).getWidth();
 				int height = images.get(imageIndex).getHeight();
@@ -245,88 +249,95 @@ public class Frame extends JFrame {
 		btnGrayScale.addMouseListener(new MouseAdapter() {
 			@Override
 			public void mouseClicked(MouseEvent e) {
-				if(imageIndex < 0)
+				if (imageIndex < 0)
 					return;
 				BufferedImage aux = images.get(imageIndex);
-				for(int i = 0; i < aux.getWidth(); i++)
-					for(int j = 0; j < aux.getHeight(); j++) {
+				for (int i = 0; i < aux.getWidth(); i++)
+					for (int j = 0; j < aux.getHeight(); j++) {
 						Color color = new Color(aux.getRGB(i, j));
 						int red = (int) (color.getRed() * 0.299);
-						int green =(int) (color.getGreen() * 0.587);
-						int blue = (int) (color.getBlue() *0.114);
-						Color newColor = new Color(	red+green+blue,
-					               					red+green+blue,
-					               					red+green+blue);
-						//System.out.println(r + " - " + g + " - " + b);
+						int green = (int) (color.getGreen() * 0.587);
+						int blue = (int) (color.getBlue() * 0.114);
+						Color newColor = new Color(red + green + blue, red + green + blue, red + green + blue);
+						// System.out.println(r + " - " + g + " - " + b);
 						images.get(imageIndex).setRGB(i, j, newColor.getRGB());
 					}
 				tabbedPane.repaint();
 			}
 		});
-		
+
 		btnShowOriginal.addMouseListener(new MouseAdapter() {
 			@Override
 			public void mouseClicked(MouseEvent e) {
-				if(imageIndex < 0)
+				if (imageIndex < 0)
 					return;
-				if(imagePanels.get(imageIndex).isShowOriginal())
+				if (imagePanels.get(imageIndex).isShowOriginal())
 					imagePanels.get(imageIndex).setShowOriginal(false);
 				else
 					imagePanels.get(imageIndex).setShowOriginal(true);
 				imagePanels.get(imageIndex).repaint();
 			}
 		});
-		
+
 		dialogProperties = new JDialog(this, true);
 		btnProperties.addMouseListener(new MouseAdapter() {
 			@Override
 			public void mouseClicked(MouseEvent e) {
-				
-				Object[][] data = {
-					    {"Format: ", "0"},
-					    {"Histogram: ", "Smith"},
-					    {"Resolution: ", "Smith"},
-					    {"Contrast Ratio: ", "Smith"},
-					    {"Brightness and Contrast: ", "Smith"},
-					    {"Entropy: ", "Smith"},
-					    {"Position and Gray Levels: ", "Smith"}
-					};
-				String[] columnNames = {"Property", "Value"};
+
+				Object[][] data = { { "Format: ", "0" }, { "Histogram: ", "Smith" }, { "Resolution: ", "Smith" },
+						{ "Contrast Ratio: ", "Smith" }, { "Brightness and Contrast: ", "Smith" },
+						{ "Entropy: ", "Smith" }, { "Position and Gray Levels: ", "Smith" } };
+				String[] columnNames = { "Property", "Value" };
 				JTable table = new JTable(data, columnNames);
 				dialogProperties.add(table);
 				dialogProperties.pack();
 				dialogProperties.setVisible(true); // blocks until dialog is closed
 			}
 		});
-		
+
+		btnHistogram.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseClicked(MouseEvent e) {
+				if(imageIndex < 0)
+					return;
+				JFrame frame = new JFrame("Histogram");
+				frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+				frame.setLayout(new BorderLayout());
+				frame.add(new JScrollPane(new Histogram(images.get(imageIndex))));
+				frame.pack();
+				frame.setLocationRelativeTo(null);
+				frame.setVisible(true);
+			}
+		});
+
 	}
-	
+
 	public static Dimension getScaledDimension(Dimension imgSize, Dimension boundary) {
 
-	    int original_width = imgSize.width;
-	    int original_height = imgSize.height;
-	    int bound_width = boundary.width;
-	    int bound_height = boundary.height;
-	    int new_width = original_width;
-	    int new_height = original_height;
+		int original_width = imgSize.width;
+		int original_height = imgSize.height;
+		int bound_width = boundary.width;
+		int bound_height = boundary.height;
+		int new_width = original_width;
+		int new_height = original_height;
 
-	    // first check if we need to scale width
-	    if (original_width > bound_width) {
-	        //scale width to fit
-	        new_width = bound_width;
-	        //scale height to maintain aspect ratio
-	        new_height = (new_width * original_height) / original_width;
-	    }
+		// first check if we need to scale width
+		if (original_width > bound_width) {
+			// scale width to fit
+			new_width = bound_width;
+			// scale height to maintain aspect ratio
+			new_height = (new_width * original_height) / original_width;
+		}
 
-	    // then check if we need to scale even with the new height
-	    if (new_height > bound_height) {
-	        //scale height to fit instead
-	        new_height = bound_height;
-	        //scale width to maintain aspect ratio
-	        new_width = (new_height * original_width) / original_height;
-	    }
+		// then check if we need to scale even with the new height
+		if (new_height > bound_height) {
+			// scale height to fit instead
+			new_height = bound_height;
+			// scale width to maintain aspect ratio
+			new_width = (new_height * original_width) / original_height;
+		}
 
-	    return new Dimension(new_width, new_height);
+		return new Dimension(new_width, new_height);
 	}
 
 }
