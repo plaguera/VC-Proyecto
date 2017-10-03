@@ -4,20 +4,27 @@ import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
-import java.util.ArrayList;
-import java.util.List;
+
+import javax.swing.JMenuItem;
 import javax.swing.JPanel;
+import javax.swing.JPopupMenu;
 
 public class Histogram extends JPanel {
 
 	protected static final int MIN_BAR_WIDTH = 4;
-	private List<List<Integer>> rgbValues;
+	private int[][] rgbValues;
 
 	public Histogram(BufferedImage image) {
 		this.rgbValues = Histogram.getRGBValues(image);
-		int width = (rgbValues.get(0).size() * MIN_BAR_WIDTH) + 11;
+		/*
+		 * for (int i = 0; i < 3; i++) { for (int j = 0; j < 256; j++) {
+		 * System.out.print(rgbValues[i][j] + " "); } System.out.println(); }
+		 */
+		int width = (256 * MIN_BAR_WIDTH) + 11;
 		Dimension minSize = new Dimension(width, 128);
 		Dimension prefSize = new Dimension(width, 256);
 		setMinimumSize(minSize);
@@ -27,12 +34,16 @@ public class Histogram extends JPanel {
 	@Override
 	protected void paintComponent(Graphics g) {
 		super.paintComponent(g);
-		drawColorHistogram(rgbValues.get(0), g, 0);
-		drawColorHistogram(rgbValues.get(1), g, 1);
-		drawColorHistogram(rgbValues.get(2), g, 2);
+		if (isGrayscale(rgbValues))
+			drawColorHistogram(rgbValues[0], g, 3);
+		else {
+			drawColorHistogram(rgbValues[0], g, 0);
+			drawColorHistogram(rgbValues[1], g, 1);
+			drawColorHistogram(rgbValues[2], g, 2);
+		}
 	}
 
-	private void drawColorHistogram(List<Integer> color, Graphics g, int rgb) {
+	private void drawColorHistogram(int[] color, Graphics g, int rgb) {
 		if (color != null) {
 			int xOffset = 5;
 			int yOffset = 5;
@@ -41,15 +52,16 @@ public class Histogram extends JPanel {
 			Graphics2D g2d = (Graphics2D) g.create();
 			g2d.setColor(Color.DARK_GRAY);
 			g2d.drawRect(xOffset, yOffset, width, height);
-			int barWidth = Math.max(MIN_BAR_WIDTH, (int) Math.floor((float) width / (float) color.size()));
-			System.out.println("width = " + width + "; size = " + color.size() + "; barWidth = " + barWidth);
+			int barWidth = Math.max(MIN_BAR_WIDTH, (int) Math.floor((float) width / (float) color.length));
+			// System.out.println("width = " + width + "; size = " + color.length + ";
+			// barWidth = " + barWidth);
 			int maxValue = 0;
 			for (Integer value : color) {
 				maxValue = Math.max(maxValue, value);
 			}
 			int xPos = xOffset;
-			for (int i = 0; i < color.size(); i++) {
-				int value = color.get(i);
+			for (int i = 0; i < color.length; i++) {
+				int value = color[i];
 				int barHeight = Math.round(((float) value / (float) maxValue) * height);
 				g2d.setColor(new Color(i, i, i));
 				int yPos = height + yOffset - barHeight;
@@ -66,6 +78,9 @@ public class Histogram extends JPanel {
 				case 2:
 					g2d.setColor(Color.BLUE);
 					break;
+				case 3:
+					g2d.setColor(Color.DARK_GRAY);
+					break;
 				default:
 					break;
 				}
@@ -77,28 +92,37 @@ public class Histogram extends JPanel {
 		}
 	}
 
-	public static List<List<Integer>> getRGBValues(BufferedImage image) {
+	public static int[][] getRGBValues(BufferedImage image) {
 		int width = image.getWidth();
 		int height = image.getHeight();
-		int[][] data = new int[width][height];
+		int[][] data = new int[3][256];
 
-		List<List<Integer>> values = new ArrayList<List<Integer>>();
 		for (int i = 0; i < 3; i++) {
-			values.add(new ArrayList<Integer>());
 			for (int j = 0; j < 256; j++) {
-				values.get(i).add(0);
+				data[i][j] = 0;
 			}
 		}
 
 		for (int c = 0; c < width; c++) {
 			for (int r = 0; r < height; r++) {
 				Color color = new Color(image.getRGB(c, r));
-				values.get(0).set(color.getRed(), values.get(0).get(color.getRed()) + 1);
-				values.get(1).set(color.getGreen(), values.get(1).get(color.getGreen()) + 1);
-				values.get(2).set(color.getBlue(), values.get(2).get(color.getBlue()) + 1);
-				System.out.println(color.toString());
+				data[0][color.getRed()]++;
+				data[1][color.getGreen()]++;
+				data[2][color.getBlue()]++;
 			}
 		}
-		return values;
+		return data;
+	}
+
+	public static boolean isGrayscale(int[][] data) {
+		int r = 0, g = 0, b = 0;
+		while (r < 256 && g < 256 && b < 256) {
+			if (data[0][r] != data[1][g] || data[1][g] != data[2][b] || data[0][r] != data[2][b])
+				return false;
+			r++;
+			g++;
+			b++;
+		}
+		return true;
 	}
 }

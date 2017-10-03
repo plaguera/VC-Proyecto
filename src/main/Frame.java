@@ -11,9 +11,12 @@ import javax.imageio.ImageIO;
 import javax.swing.BorderFactory;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
+import javax.swing.JCheckBoxMenuItem;
 import javax.swing.JDialog;
 import javax.swing.JFrame;
+import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
 import javax.swing.border.EmptyBorder;
 import javax.swing.event.ChangeEvent;
@@ -31,6 +34,8 @@ import javax.swing.JMenuItem;
 
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.ItemEvent;
+import java.awt.event.ItemListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -54,11 +59,11 @@ public class Frame extends JFrame {
 
 	private int imageIndex;
 	JMenuItem mntmOpen, mntmSave, mntmCloseTab;
-	private Label resolutionLabel, xCoordLabel, yCoordLabel;
+	private JLabel resolutionLabel, xCoordLabel, yCoordLabel;
 	private JPanel coordLabelsPanel;
 
 	private JButton btnGrayScale, btnShowOriginal, btnProperties, btnHistogram;
-	private JDialog dialogProperties;
+	private CurrentColorPanel currentColorPanel;
 
 	/**
 	 * Launch the application.
@@ -115,15 +120,21 @@ public class Frame extends JFrame {
 
 		coordLabelsPanel = new JPanel();
 		infoPanel.add(coordLabelsPanel);
-		coordLabelsPanel.setLayout(new GridLayout(1, 2, 0, 0));
+		coordLabelsPanel.setLayout(new GridLayout(1, 3, 0, 0));
 
-		xCoordLabel = new Label();
+		xCoordLabel = new JLabel();
+		xCoordLabel.setHorizontalAlignment(SwingConstants.CENTER);
 		coordLabelsPanel.add(xCoordLabel);
 
-		yCoordLabel = new Label();
+		yCoordLabel = new JLabel();
+		yCoordLabel.setHorizontalAlignment(SwingConstants.CENTER);
 		coordLabelsPanel.add(yCoordLabel);
+		
+		currentColorPanel = new CurrentColorPanel();
+		coordLabelsPanel.add(currentColorPanel);
 
-		resolutionLabel = new Label();
+		resolutionLabel = new JLabel();
+		resolutionLabel.setHorizontalAlignment(SwingConstants.CENTER);
 		infoPanel.add(resolutionLabel);
 
 		tabbedPane = new JTabbedPane(JTabbedPane.TOP);
@@ -134,32 +145,40 @@ public class Frame extends JFrame {
 		btnGrayScale = new JButton();
 		btnGrayScale.setPreferredSize(new Dimension(48, 48));
 		btnGrayScale.setHorizontalTextPosition(SwingConstants.CENTER);
+		btnGrayScale.setToolTipText("Grayscale");
+		btnGrayScale.setFocusable(false);
 
 		btnShowOriginal = new JButton();
 		btnShowOriginal.setPreferredSize(new Dimension(48, 48));
 		btnShowOriginal.setHorizontalTextPosition(SwingConstants.CENTER);
+		btnShowOriginal.setToolTipText("Show Original Image");
+		btnShowOriginal.setFocusable(false);
 
 		btnProperties = new JButton();
 		btnProperties.setPreferredSize(new Dimension(48, 48));
 		btnProperties.setHorizontalTextPosition(SwingConstants.CENTER);
-		
+		btnProperties.setToolTipText("Properties");
+		btnProperties.setFocusable(false);
+
 		btnHistogram = new JButton();
 		btnHistogram.setPreferredSize(new Dimension(48, 48));
 		btnHistogram.setHorizontalTextPosition(SwingConstants.CENTER);
+		btnHistogram.setToolTipText("Histogram");
+		btnHistogram.setFocusable(false);
 
 		try {
 			btnGrayScale.setIcon(new ImageIcon("grayscale.png"));
 			btnShowOriginal.setIcon(new ImageIcon("original.png"));
 			btnProperties.setIcon(new ImageIcon("properties.png"));
-			btnHistogram.setIcon(new ImageIcon("histogram.ico"));
+			btnHistogram.setIcon(new ImageIcon("histogram.png"));
 		} catch (Exception ex) {
 			System.out.println(ex);
 		}
 		System.out.println("Working Directory = " + System.getProperty("user.dir"));
-		buttonBar.add(btnGrayScale);
-		buttonBar.add(btnShowOriginal);
 		buttonBar.add(btnProperties);
+		buttonBar.add(btnShowOriginal);
 		buttonBar.add(btnHistogram);
+		buttonBar.add(btnGrayScale);
 		buttonBar.add(new JButton("5"));
 		buttonBar.add(new JButton("6"));
 		buttonBar.add(new JButton("7"));
@@ -193,9 +212,16 @@ public class Frame extends JFrame {
 					newImage.addMouseMotionListener(new MouseMotionAdapter() {
 						@Override
 						public void mouseMoved(MouseEvent e) {
-							xCoordLabel.setText("X: " + e.getX());
-							yCoordLabel.setText("Y: " + e.getY());
-							repaint();
+							if(!newImage.isOnImage(e.getX(), e.getY()))
+								return;
+							int x = (int)(e.getX() * newImage.getScaleFactor());
+							int y = (int)(e.getY() * newImage.getScaleFactor());
+							xCoordLabel.setText("X: " + x);
+							yCoordLabel.setText("Y: " + y);
+							currentColorPanel.setColor(newImage.getImage().getRGB(x, y));
+							xCoordLabel.repaint();
+							yCoordLabel.repaint();
+							currentColorPanel.repaint();
 						}
 					});
 					imagePanels.add(newImage);
@@ -243,7 +269,8 @@ public class Frame extends JFrame {
 				int height = images.get(imageIndex).getHeight();
 				String text = width + " x " + height + "pixels";
 				resolutionLabel.setText(text);
-				System.out.println("Tab: " + imageIndex);
+				imageIndex = tabbedPane.getSelectedIndex();
+				System.out.println("Tab: " + imageIndex + " - " + imageIndex);
 			}
 		});
 		btnGrayScale.addMouseListener(new MouseAdapter() {
@@ -279,31 +306,77 @@ public class Frame extends JFrame {
 			}
 		});
 
-		dialogProperties = new JDialog(this, true);
 		btnProperties.addMouseListener(new MouseAdapter() {
 			@Override
 			public void mouseClicked(MouseEvent e) {
 
-				Object[][] data = { { "Format: ", "0" }, { "Histogram: ", "Smith" }, { "Resolution: ", "Smith" },
-						{ "Contrast Ratio: ", "Smith" }, { "Brightness and Contrast: ", "Smith" },
-						{ "Entropy: ", "Smith" }, { "Position and Gray Levels: ", "Smith" } };
-				String[] columnNames = { "Property", "Value" };
-				JTable table = new JTable(data, columnNames);
-				dialogProperties.add(table);
-				dialogProperties.pack();
-				dialogProperties.setVisible(true); // blocks until dialog is closed
+				if (imageIndex < 0)
+					return;
+				JFrame frame = new JFrame("Properties");
+				// frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+				if (imagePanels.get(imageIndex).isShowOriginal())
+					frame.add(new PropertiesPanel(imagePanels.get(imageIndex)));
+				else
+					frame.add(new PropertiesPanel(imagePanels.get(imageIndex)));
+				// frame.pack();
+				frame.setSize(150, 300);
+				frame.setLocationRelativeTo(null);
+				frame.setVisible(true);
 			}
 		});
 
 		btnHistogram.addMouseListener(new MouseAdapter() {
 			@Override
 			public void mouseClicked(MouseEvent e) {
-				if(imageIndex < 0)
+				if (imageIndex < 0)
 					return;
 				JFrame frame = new JFrame("Histogram");
-				frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+				// frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 				frame.setLayout(new BorderLayout());
-				frame.add(new JScrollPane(new Histogram(images.get(imageIndex))));
+				if (imagePanels.get(imageIndex).isShowOriginal())
+					frame.add(new JScrollPane(new Histogram(imagePanels.get(imageIndex).getOriginal())));
+				else
+					frame.add(new JScrollPane(new Histogram(images.get(imageIndex))));
+				final JPopupMenu popupmenu = new JPopupMenu("Edit");
+				JCheckBoxMenuItem red = new JCheckBoxMenuItem("Red", true);
+				JCheckBoxMenuItem green = new JCheckBoxMenuItem("Green", true);
+				JCheckBoxMenuItem blue = new JCheckBoxMenuItem("Blue", true);
+				popupmenu.add(red);
+				popupmenu.add(green);
+				popupmenu.add(blue);
+				addMouseListener(new MouseAdapter() {
+					public void mouseClicked(MouseEvent e) {
+						popupmenu.show(frame, e.getX(), e.getY());
+					}
+				});
+				red.addItemListener(new ItemListener() {
+					public void itemStateChanged(ItemEvent e) {
+						if (red.getState()) {
+							// PLOT RED
+						} else {
+							// DONT PLOT RED
+						}
+					}
+				});
+				green.addItemListener(new ItemListener() {
+					public void itemStateChanged(ItemEvent e) {
+						if (green.getState()) {
+							// PLOT RED
+						} else {
+							// DONT PLOT RED
+						}
+					}
+				});
+				blue.addItemListener(new ItemListener() {
+					public void itemStateChanged(ItemEvent e) {
+						if (blue.getState()) {
+							// PLOT RED
+						} else {
+							// DONT PLOT RED
+						}
+					}
+				});
+				//frame.add(popupmenu);
 				frame.pack();
 				frame.setLocationRelativeTo(null);
 				frame.setVisible(true);
