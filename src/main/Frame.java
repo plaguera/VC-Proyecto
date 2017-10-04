@@ -39,6 +39,7 @@ import java.awt.event.ItemListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionAdapter;
 import java.awt.image.BufferedImage;
 import java.io.File;
@@ -56,6 +57,7 @@ public class Frame extends JFrame {
 	private JTabbedPane tabbedPane;
 	private List<BufferedImage> images;
 	private List<ImagePanel> imagePanels;
+	JPopupMenu popup;
 
 	private int imageIndex;
 	JMenuItem mntmOpen, mntmSave, mntmCloseTab;
@@ -278,17 +280,7 @@ public class Frame extends JFrame {
 			public void mouseClicked(MouseEvent e) {
 				if (imageIndex < 0)
 					return;
-				BufferedImage aux = images.get(imageIndex);
-				for (int i = 0; i < aux.getWidth(); i++)
-					for (int j = 0; j < aux.getHeight(); j++) {
-						Color color = new Color(aux.getRGB(i, j));
-						int red = (int) (color.getRed() * 0.299);
-						int green = (int) (color.getGreen() * 0.587);
-						int blue = (int) (color.getBlue() * 0.114);
-						Color newColor = new Color(red + green + blue, red + green + blue, red + green + blue);
-						// System.out.println(r + " - " + g + " - " + b);
-						images.get(imageIndex).setRGB(i, j, newColor.getRGB());
-					}
+				ImageTools.rgbToGrayscale(images.get(imageIndex));
 				tabbedPane.repaint();
 			}
 		});
@@ -333,22 +325,19 @@ public class Frame extends JFrame {
 				JFrame frame = new JFrame("Histogram");
 				// frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 				frame.setLayout(new BorderLayout());
-				if (imagePanels.get(imageIndex).isShowOriginal())
-					frame.add(new JScrollPane(new Histogram(imagePanels.get(imageIndex).getOriginal())));
-				else
-					frame.add(new JScrollPane(new Histogram(images.get(imageIndex))));
-				final JPopupMenu popupmenu = new JPopupMenu("Edit");
+				
+				
+				
+				popup = new JPopupMenu("Edit");
 				JCheckBoxMenuItem red = new JCheckBoxMenuItem("Red", true);
 				JCheckBoxMenuItem green = new JCheckBoxMenuItem("Green", true);
 				JCheckBoxMenuItem blue = new JCheckBoxMenuItem("Blue", true);
-				popupmenu.add(red);
-				popupmenu.add(green);
-				popupmenu.add(blue);
-				addMouseListener(new MouseAdapter() {
+				/*
+				frame.addMouseListener(new MouseAdapter() {
 					public void mouseClicked(MouseEvent e) {
-						popupmenu.show(frame, e.getX(), e.getY());
+						popupmenu.show(e.getComponent(), e.getX(), e.getY());
 					}
-				});
+				});*/
 				red.addItemListener(new ItemListener() {
 					public void itemStateChanged(ItemEvent e) {
 						if (red.getState()) {
@@ -376,7 +365,15 @@ public class Frame extends JFrame {
 						}
 					}
 				});
-				//frame.add(popupmenu);
+				popup.add(red);
+				popup.add(green);
+				popup.add(blue);
+				
+				if (imagePanels.get(imageIndex).isShowOriginal())
+					frame.add(new JScrollPane(new Histogram(imagePanels.get(imageIndex).getOriginal())));
+				else
+					frame.add(new JScrollPane(new Histogram(images.get(imageIndex))));
+				
 				frame.pack();
 				frame.setLocationRelativeTo(null);
 				frame.setVisible(true);
@@ -411,6 +408,23 @@ public class Frame extends JFrame {
 		}
 
 		return new Dimension(new_width, new_height);
+	}
+	
+	class PopupListener extends MouseAdapter {
+	    public void mousePressed(MouseEvent e) {
+	        maybeShowPopup(e);
+	    }
+
+	    public void mouseReleased(MouseEvent e) {
+	        maybeShowPopup(e);
+	    }
+
+	    private void maybeShowPopup(MouseEvent e) {
+	        if (e.isPopupTrigger()) {
+	            popup.show(e.getComponent(),
+	                       e.getX(), e.getY());
+	        }
+	    }
 	}
 
 }

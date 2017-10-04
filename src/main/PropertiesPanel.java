@@ -3,6 +3,9 @@ package main;
 import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.GridLayout;
+import java.awt.image.BufferedImage;
+import java.util.Map;
+import java.util.Map.Entry;
 
 import javax.swing.BorderFactory;
 import javax.swing.JLabel;
@@ -28,7 +31,8 @@ public class PropertiesPanel extends JPanel {
 		categResolution.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 20));
 		add(categResolution);
 		
-		categRange = new JLabel(image.getRange());
+		Map.Entry<Integer, Integer> range = ImageTools.getGrayRange(image.getImage());
+		categRange = new JLabel("[" + range.getKey() + " - " + range.getValue() + "]");
 		categRange.setBorder(BorderFactory.createTitledBorder("Value Range"));
 		categRange.setHorizontalAlignment(SwingConstants.CENTER);
 		categRange.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 20));

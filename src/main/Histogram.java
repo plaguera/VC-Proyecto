@@ -1,22 +1,29 @@
 package main;
 
 import java.awt.Color;
+import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.awt.event.ItemEvent;
+import java.awt.event.ItemListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
 
-import javax.swing.JMenuItem;
+import javax.swing.JCheckBoxMenuItem;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
+import javax.swing.SwingUtilities;
 
 public class Histogram extends JPanel {
 
 	protected static final int MIN_BAR_WIDTH = 4;
 	private int[][] rgbValues;
+	private JPopupMenu popup;
+	private JCheckBoxMenuItem red, green, blue;
+	private boolean showRed, showGreen, showBlue;
 
 	public Histogram(BufferedImage image) {
 		this.rgbValues = Histogram.getRGBValues(image);
@@ -29,6 +36,21 @@ public class Histogram extends JPanel {
 		Dimension prefSize = new Dimension(width, 256);
 		setMinimumSize(minSize);
 		setPreferredSize(prefSize);
+		
+		showRed = true;
+		showGreen = true;
+		showBlue = true;
+		
+		popup = new JPopupMenu("Edit");
+		red = new JCheckBoxMenuItem("Red", showRed);
+		green = new JCheckBoxMenuItem("Green", showGreen);
+		blue = new JCheckBoxMenuItem("Blue", showBlue);
+		
+		popup.add(red);
+		popup.add(green);
+		popup.add(blue);
+		
+		setListeners();
 	}
 
 	@Override
@@ -37,10 +59,24 @@ public class Histogram extends JPanel {
 		if (isGrayscale(rgbValues))
 			drawColorHistogram(rgbValues[0], g, 3);
 		else {
-			drawColorHistogram(rgbValues[0], g, 0);
-			drawColorHistogram(rgbValues[1], g, 1);
-			drawColorHistogram(rgbValues[2], g, 2);
+			drawBorder(g);
+			if(showRed)
+				drawColorHistogram(rgbValues[0], g, 0);
+			if(showGreen)
+				drawColorHistogram(rgbValues[1], g, 1);
+			if(showBlue)
+				drawColorHistogram(rgbValues[2], g, 2);
 		}
+	}
+	
+	private void drawBorder(Graphics g) {
+		int xOffset = 5;
+		int yOffset = 5;
+		int width = getWidth() - 1 - (xOffset * 2);
+		int height = getHeight() - 1 - (yOffset * 2);
+		Graphics2D g2d = (Graphics2D) g.create();
+		g2d.setColor(Color.DARK_GRAY);
+		g2d.drawRect(xOffset, yOffset, width, height);
 	}
 
 	private void drawColorHistogram(int[] color, Graphics g, int rgb) {
@@ -50,8 +86,8 @@ public class Histogram extends JPanel {
 			int width = getWidth() - 1 - (xOffset * 2);
 			int height = getHeight() - 1 - (yOffset * 2);
 			Graphics2D g2d = (Graphics2D) g.create();
-			g2d.setColor(Color.DARK_GRAY);
-			g2d.drawRect(xOffset, yOffset, width, height);
+			//g2d.setColor(Color.DARK_GRAY);
+			//g2d.drawRect(xOffset, yOffset, width, height);
 			int barWidth = Math.max(MIN_BAR_WIDTH, (int) Math.floor((float) width / (float) color.length));
 			// System.out.println("width = " + width + "; size = " + color.length + ";
 			// barWidth = " + barWidth);
@@ -124,5 +160,34 @@ public class Histogram extends JPanel {
 			b++;
 		}
 		return true;
+	}
+	
+	private void setListeners() {
+		addMouseListener(new MouseAdapter() {
+			public void mousePressed(MouseEvent e) {
+				if (SwingUtilities.isRightMouseButton(e)) {
+					popup.show(e.getComponent(), e.getX(), e.getY());
+				}
+			}
+
+		});
+		red.addItemListener(new ItemListener() {
+			public void itemStateChanged(ItemEvent e) {
+				showRed = red.getState();
+				repaint();
+			}
+		});
+		green.addItemListener(new ItemListener() {
+			public void itemStateChanged(ItemEvent e) {
+				showGreen = green.getState();
+				repaint();
+			}
+		});
+		blue.addItemListener(new ItemListener() {
+			public void itemStateChanged(ItemEvent e) {
+				showBlue = blue.getState();
+				repaint();
+			}
+		});
 	}
 }
