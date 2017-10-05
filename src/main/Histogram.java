@@ -1,7 +1,6 @@
 package main;
 
 import java.awt.Color;
-import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
@@ -19,6 +18,7 @@ import javax.swing.SwingUtilities;
 
 public class Histogram extends JPanel {
 
+	private static final long serialVersionUID = 729670405199776986L;
 	protected static final int MIN_BAR_WIDTH = 4;
 	private int[][] rgbValues;
 	private JPopupMenu popup;
@@ -57,10 +57,10 @@ public class Histogram extends JPanel {
 	@Override
 	protected void paintComponent(Graphics g) {
 		super.paintComponent(g);
+		drawBorder(g);
 		if (isGrayscale(rgbValues))
 			drawColorHistogram(rgbValues[0], g, 3);
 		else {
-			drawBorder(g);
 			if(showRed)
 				drawColorHistogram(rgbValues[0], g, 0);
 			if(showGreen)
@@ -87,11 +87,7 @@ public class Histogram extends JPanel {
 			int width = getWidth() - 1 - (xOffset * 2);
 			int height = getHeight() - 1 - (yOffset * 2);
 			Graphics2D g2d = (Graphics2D) g.create();
-			//g2d.setColor(Color.DARK_GRAY);
-			//g2d.drawRect(xOffset, yOffset, width, height);
 			int barWidth = Math.max(MIN_BAR_WIDTH, (int) Math.floor((float) width / (float) color.length));
-			// System.out.println("width = " + width + "; size = " + color.length + ";
-			// barWidth = " + barWidth);
 			int maxValue = 0;
 			for (Integer value : color) {
 				maxValue = Math.max(maxValue, value);

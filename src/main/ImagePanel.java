@@ -2,62 +2,60 @@ package main;
 
 import java.awt.Dimension;
 import java.awt.Graphics;
-import java.awt.event.MouseEvent;
-import java.awt.event.MouseMotionAdapter;
-import java.awt.geom.Point2D;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 
 import javax.imageio.ImageIO;
+import javax.swing.BorderFactory;
 import javax.swing.JPanel;
 
 public class ImagePanel extends JPanel {
 
-	private BufferedImage image, original;
-	private String path;
+	private static final long serialVersionUID = 2870389239092684937L;
+	private BufferedImage image;
+	final BufferedImage original;
+	private String path, format;
 	private boolean showOriginal;
-	private String format;
-	private Dimension dimension;
+	private Dimension imageDimension;
 
 	public ImagePanel(String file) {
-		setPath(file);
+		BufferedImage aux = null;
 		try {
+			aux = ImageIO.read(new File(file));
 			setImage(ImageIO.read(new File(file)));
-			setOriginal(ImageIO.read(new File(file)));
-			setFormat(file.substring(file.indexOf('.'),file.length()));
+		} catch (IOException e) { e.printStackTrace(); }
+		this.original = ImageTools.deepCopy(aux);
+		
+		setPath(file);
+		setFormat(file.substring(file.indexOf('.')+1,file.length()).toLowerCase());
 
-			setShowOriginal(false);
-		} catch (IOException ex) {
-			ex.printStackTrace();
-		}
+		setShowOriginal(false);
+		setBorder(BorderFactory.createEmptyBorder());
 	}
 
 	@Override
 	protected void paintComponent(Graphics g) {
 		super.paintComponent(g);
-		dimension = Frame.getScaledDimension(new Dimension(image.getWidth(), image.getHeight()),
-				new Dimension(getWidth(), getHeight()));
-		if (isShowOriginal())
-			g.drawImage(original, 0, 0, dimension.width, dimension.height, this); // see javadoc for more info on the parameters
+		imageDimension = ImageTools.getScaledDimension(	new Dimension(image.getWidth(), image.getHeight()),
+														new Dimension(getWidth(), getHeight()));
+		if (isShowingOriginal())
+			g.drawImage(original, 0, 0, imageDimension.width, imageDimension.height, this);
 		else
-			g.drawImage(image, 0, 0, dimension.width, dimension.height, this); // see javadoc for more info on the parameters
+			g.drawImage(image, 0, 0, imageDimension.width, imageDimension.height, this);
 	}
 	
 	public boolean isOnImage(int x, int y) {
-		if(x < 0 || x >= dimension.width || y < 0 || y >= dimension.height)
+		if(x < 0 || x >= imageDimension.width || y < 0 || y >= imageDimension.height)
 			return false;
 		return true;
 	}
 
 	/** @return the image */
 	public BufferedImage getImage() {
+		if(isShowingOriginal())
+			return original;
 		return image;
-	}
-
-	/** @return the image */
-	public BufferedImage getOriginal() {
-		return original;
 	}
 
 	/* @param image the image to set */
@@ -65,10 +63,10 @@ public class ImagePanel extends JPanel {
 		this.image = image;
 	}
 
-	/* @param image the original image to set */
-	public void setOriginal(BufferedImage original) {
+	/* @param image the original image to set 
+	private void setOriginal(BufferedImage original) {
 		this.original = original;
-	}
+	}*/
 
 	/** @return the path */
 	public String getPath() {
@@ -77,51 +75,51 @@ public class ImagePanel extends JPanel {
 
 	/**
 	 * @param path
-	 *            the path to set
+	 * the path to set
 	 */
 	public void setPath(String path) {
 		this.path = path;
 	}
 
-	/**
-	 * @return the showOriginal
-	 */
-	public boolean isShowOriginal() {
+	/** @return the showOriginal */
+	public boolean isShowingOriginal() {
 		return showOriginal;
+	}
+	
+	public void switchOriginal() {
+		setShowOriginal(!isShowingOriginal());
 	}
 
 	/**
 	 * @param showOriginal
-	 *            the showOriginal to set
+	 * Show original image?
 	 */
 	public void setShowOriginal(boolean showOriginal) {
 		this.showOriginal = showOriginal;
 	}
 
-	/**
-	 * @return the format
-	 */
+	/** @return the format */
 	public String getFormat() {
 		return format;
 	}
 
-	/**
-	 * @param format the format to set
-	 */
+	/** @param format the format to set */
 	public void setFormat(String format) {
 		this.format = format;
 	}
 	
 	public String getResolution() {
-		return image.getWidth() + " x " + image.getHeight();
+		return getImage().getWidth() + " x " + getImage().getHeight();
 	}
 	
+	/* @return Gray levels range */
 	public String getRange() {
-		return image.getWidth() + " x " + image.getHeight();
+		return getImage().getWidth() + " x " + getImage().getHeight();
 	}
 	
+	/*  */
 	public double getScaleFactor() {
-		return (double) ((double)original.getWidth() / (double)dimension.getWidth());
+		return (double) ((double)getImage().getWidth() / (double)imageDimension.getWidth());
 	}
 
 }

@@ -3,9 +3,7 @@ package main;
 import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.GridLayout;
-import java.awt.image.BufferedImage;
 import java.util.Map;
-import java.util.Map.Entry;
 
 import javax.swing.BorderFactory;
 import javax.swing.JLabel;
@@ -14,6 +12,7 @@ import javax.swing.SwingConstants;
 
 public class PropertiesPanel extends JPanel {
 	
+	private static final long serialVersionUID = 1476648644761993411L;
 	private JLabel categFormat, categResolution, categRange;
 
 	public PropertiesPanel(ImagePanel image) {

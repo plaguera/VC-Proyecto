@@ -7,14 +7,11 @@ import java.awt.FileDialog;
 import java.awt.FlowLayout;
 
 import javax.imageio.ImageIO;
-import javax.swing.BorderFactory;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
-import javax.swing.JCheckBoxMenuItem;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
-import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
 import javax.swing.border.EmptyBorder;
 import javax.swing.event.ChangeEvent;
@@ -31,8 +28,6 @@ import javax.swing.JMenuItem;
 
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.event.ItemEvent;
-import java.awt.event.ItemListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -45,14 +40,14 @@ import java.util.List;
 
 public class Frame extends JFrame {
 
+	private static final long serialVersionUID = 1415573919342366965L;
 	private static final int WINDOW_WIDTH = 1000;
 	private static final int WINDOW_HEIGHT = 680;
 
 	private JPanel contentPane;
 	private JTabbedPane tabbedPane;
-	private List<BufferedImage> images;
+	//private List<BufferedImage> images;
 	private List<ImagePanel> imagePanels;
-	private JPopupMenu popup;
 
 	private int imageIndex;
 	private JMenuItem mntmOpen, mntmSave, mntmCloseTab;
@@ -84,7 +79,8 @@ public class Frame extends JFrame {
 	public Frame() {
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		setBounds(100, 100, WINDOW_WIDTH, WINDOW_HEIGHT);
-
+		setTitle("Image Editor");
+		
 		JMenuBar menuBar = new JMenuBar();
 		setJMenuBar(menuBar);
 
@@ -185,7 +181,7 @@ public class Frame extends JFrame {
 
 		contentPane.add(buttonBar, BorderLayout.NORTH);
 
-		images = new ArrayList<BufferedImage>();
+		//images = new ArrayList<BufferedImage>();
 		imagePanels = new ArrayList<ImagePanel>();
 		imageIndex = -1;
 		setUpListeners();
@@ -196,36 +192,41 @@ public class Frame extends JFrame {
 		/**
 		 * Open File dialog listener
 		 */
-		FileDialog fcLoad = new FileDialog(this, "Open Image...", FileDialog.LOAD);
+		Frame frame = this;
 		mntmOpen.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
+				FileDialog fcLoad = new FileDialog(frame, "Open Image...", FileDialog.LOAD);
 				fcLoad.setVisible(true);
-				String fn = fcLoad.getDirectory() + fcLoad.getFile();
-				if (fn == null)
-					System.out.println("Cancelled Open");
+				if (fcLoad.getFile() == null) {
+					System.out.println("Cancelled Open !!");
+					return;
+				}
 				else {
-					System.out.println("You chose '" + fn + "'");
-					ImagePanel newImage = new ImagePanel(fn);
-					images.add(newImage.getImage());
-					imageIndex++;
-					newImage.setBorder(BorderFactory.createEmptyBorder());
-					newImage.addMouseMotionListener(new MouseMotionAdapter() {
+					String directory = fcLoad.getDirectory();
+					String fileName = fcLoad.getFile();
+					System.out.println("Opening '" + directory + fileName + "'");
+					
+					ImagePanel newImagePanel = new ImagePanel(directory + fileName);
+					
+					newImagePanel.addMouseMotionListener(new MouseMotionAdapter() {
 						@Override
 						public void mouseMoved(MouseEvent e) {
-							if(!newImage.isOnImage(e.getX(), e.getY()))
+							if(!newImagePanel.isOnImage(e.getX(), e.getY()))
 								return;
-							int x = (int)(e.getX() * newImage.getScaleFactor());
-							int y = (int)(e.getY() * newImage.getScaleFactor());
+							int x = (int)(e.getX() * newImagePanel.getScaleFactor());
+							int y = (int)(e.getY() * newImagePanel.getScaleFactor());
 							xCoordLabel.setText("X: " + x);
 							yCoordLabel.setText("Y: " + y);
-							currentColorPanel.setColor(newImage.getImage().getRGB(x, y));
+							currentColorPanel.setColor(newImagePanel.getImage().getRGB(x, y));
 							xCoordLabel.repaint();
 							yCoordLabel.repaint();
 							currentColorPanel.repaint();
 						}
 					});
-					imagePanels.add(newImage);
-					tabbedPane.addTab(fcLoad.getFile(), newImage);
+					
+					imagePanels.add(newImagePanel);
+					imageIndex++;
+					tabbedPane.addTab(fcLoad.getFile(), newImagePanel);
 					tabbedPane.setSelectedIndex(imageIndex);
 					tabbedPane.repaint();
 				}
@@ -235,21 +236,22 @@ public class Frame extends JFrame {
 		/**
 		 * Save File dialog listener
 		 */
-		FileDialog fcSave = new FileDialog(this, "Save Image...", FileDialog.SAVE);
 		mntmSave.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
+				FileDialog fcSave = new FileDialog(frame, "Save Image...", FileDialog.SAVE);
 				fcSave.setVisible(true);
-				String fn = fcSave.getDirectory() + fcSave.getFile();
-				System.out.println(fcSave.getDirectory());
-				if (fn == null)
-					System.out.println("Cancelled Save");
+				if (fcSave.getFile() == null) {
+					System.out.println("Cancelled Save !!");
+					return;
+				}
 				else {
+					String directory = fcSave.getDirectory();
+					String fileName = fcSave.getFile();
 					try {
-						// retrieve image
-						BufferedImage image = images.get(imageIndex);
-						File outputfile = new File(fcSave.getFile());
-						ImageIO.write(image, "jpg", outputfile);
-						System.out.println("Saved as '" + fn + "'");
+						ImageIO.write(	imagePanels.get(imageIndex).getImage(),
+										imagePanels.get(imageIndex).getFormat(),
+										new File(directory + fileName));
+						System.out.println("Saved as '" + fileName + "' in " + directory);
 					} catch (IOException e1) {
 						e1.printStackTrace();
 					}
@@ -263,61 +265,46 @@ public class Frame extends JFrame {
 		mntmCloseTab.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				if (imageIndex > -1) {
-					images.remove(imageIndex);
 					imagePanels.remove(imageIndex);
 					tabbedPane.remove(imageIndex--);
 				}
 			}
 		});
 		
-		/**
-		 * Current Tab Change Listener
-		 */
+		/** Current Tab Change Listener */
 		tabbedPane.addChangeListener(new ChangeListener() {
 			public void stateChanged(ChangeEvent e) {
 				if (imageIndex < 0)
 					return;
-				int width = images.get(imageIndex).getWidth();
-				int height = images.get(imageIndex).getHeight();
-				String text = width + " x " + height + "pixels";
-				resolutionLabel.setText(text);
+				resolutionLabel.setText(imagePanels.get(imageIndex).getResolution() + " pixels");
 				imageIndex = tabbedPane.getSelectedIndex();
-				System.out.println("Tab: " + imageIndex + " - " + imageIndex);
+				//System.out.println("Tab: " + imageIndex);
 			}
 		});
 		
-		/**
-		 * Grayscale Button Listener
-		 */
+		/** Grayscale Button Listener */
 		btnGrayScale.addMouseListener(new MouseAdapter() {
 			@Override
 			public void mouseClicked(MouseEvent e) {
 				if (imageIndex < 0)
 					return;
-				ImageTools.rgbToGrayscale(images.get(imageIndex));
+				ImageTools.rgbToGrayscale(imagePanels.get(imageIndex).getImage());
 				tabbedPane.repaint();
 			}
 		});
 
-		/**
-		 * Show Original Image Button Listener
-		 */
+		/** Show Original Image Button Listener */
 		btnShowOriginal.addMouseListener(new MouseAdapter() {
 			@Override
 			public void mouseClicked(MouseEvent e) {
 				if (imageIndex < 0)
 					return;
-				if (imagePanels.get(imageIndex).isShowOriginal())
-					imagePanels.get(imageIndex).setShowOriginal(false);
-				else
-					imagePanels.get(imageIndex).setShowOriginal(true);
+				imagePanels.get(imageIndex).switchOriginal();
 				imagePanels.get(imageIndex).repaint();
 			}
 		});
 
-		/**
-		 * Show Properties Button Listener
-		 */
+		/** Show Properties Button Listener */
 		btnProperties.addMouseListener(new MouseAdapter() {
 			@Override
 			public void mouseClicked(MouseEvent e) {
@@ -325,12 +312,7 @@ public class Frame extends JFrame {
 				if (imageIndex < 0)
 					return;
 				JFrame frame = new JFrame("Properties");
-				// frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-				if (imagePanels.get(imageIndex).isShowOriginal())
-					frame.add(new PropertiesPanel(imagePanels.get(imageIndex)));
-				else
-					frame.add(new PropertiesPanel(imagePanels.get(imageIndex)));
-				// frame.pack();
+				frame.add(new PropertiesPanel(imagePanels.get(imageIndex)));
 				frame.setSize(150, 300);
 				frame.setLocationRelativeTo(null);
 				frame.setVisible(true);
@@ -347,46 +329,13 @@ public class Frame extends JFrame {
 					return;
 				JFrame frame = new JFrame("Histogram");
 				frame.setLayout(new BorderLayout());
-				
-				if (imagePanels.get(imageIndex).isShowOriginal())
-					frame.add(new JScrollPane(new Histogram(imagePanels.get(imageIndex).getOriginal())));
-				else
-					frame.add(new JScrollPane(new Histogram(images.get(imageIndex))));
-				
+				frame.add(new JScrollPane(new Histogram(imagePanels.get(imageIndex).getImage())));
 				frame.pack();
 				frame.setLocationRelativeTo(null);
 				frame.setVisible(true);
 			}
 		});
 
-	}
-
-	public static Dimension getScaledDimension(Dimension imgSize, Dimension boundary) {
-
-		int original_width = imgSize.width;
-		int original_height = imgSize.height;
-		int bound_width = boundary.width;
-		int bound_height = boundary.height;
-		int new_width = original_width;
-		int new_height = original_height;
-
-		// first check if we need to scale width
-		if (original_width > bound_width) {
-			// scale width to fit
-			new_width = bound_width;
-			// scale height to maintain aspect ratio
-			new_height = (new_width * original_height) / original_width;
-		}
-
-		// then check if we need to scale even with the new height
-		if (new_height > bound_height) {
-			// scale height to fit instead
-			new_height = bound_height;
-			// scale width to maintain aspect ratio
-			new_width = (new_height * original_width) / original_height;
-		}
-
-		return new Dimension(new_width, new_height);
 	}
 
 }
