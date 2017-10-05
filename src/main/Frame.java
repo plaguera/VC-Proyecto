@@ -1,7 +1,6 @@
 package main;
 
 import java.awt.BorderLayout;
-import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.EventQueue;
 import java.awt.FileDialog;
@@ -12,7 +11,6 @@ import javax.swing.BorderFactory;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JCheckBoxMenuItem;
-import javax.swing.JDialog;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
@@ -23,7 +21,6 @@ import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
 import javax.swing.JTabbedPane;
-import javax.swing.JTable;
 import javax.swing.KeyStroke;
 import javax.swing.SwingConstants;
 
@@ -39,14 +36,12 @@ import java.awt.event.ItemListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionAdapter;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.awt.Label;
 
 public class Frame extends JFrame {
 
@@ -57,10 +52,10 @@ public class Frame extends JFrame {
 	private JTabbedPane tabbedPane;
 	private List<BufferedImage> images;
 	private List<ImagePanel> imagePanels;
-	JPopupMenu popup;
+	private JPopupMenu popup;
 
 	private int imageIndex;
-	JMenuItem mntmOpen, mntmSave, mntmCloseTab;
+	private JMenuItem mntmOpen, mntmSave, mntmCloseTab;
 	private JLabel resolutionLabel, xCoordLabel, yCoordLabel;
 	private JPanel coordLabelsPanel;
 
@@ -198,6 +193,9 @@ public class Frame extends JFrame {
 	}
 
 	private void setUpListeners() {
+		/**
+		 * Open File dialog listener
+		 */
 		FileDialog fcLoad = new FileDialog(this, "Open Image...", FileDialog.LOAD);
 		mntmOpen.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
@@ -233,6 +231,10 @@ public class Frame extends JFrame {
 				}
 			}
 		});
+		
+		/**
+		 * Save File dialog listener
+		 */
 		FileDialog fcSave = new FileDialog(this, "Save Image...", FileDialog.SAVE);
 		mntmSave.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
@@ -254,6 +256,10 @@ public class Frame extends JFrame {
 				}
 			}
 		});
+		
+		/**
+		 * Close Tab listener
+		 */
 		mntmCloseTab.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				if (imageIndex > -1) {
@@ -263,6 +269,10 @@ public class Frame extends JFrame {
 				}
 			}
 		});
+		
+		/**
+		 * Current Tab Change Listener
+		 */
 		tabbedPane.addChangeListener(new ChangeListener() {
 			public void stateChanged(ChangeEvent e) {
 				if (imageIndex < 0)
@@ -275,6 +285,10 @@ public class Frame extends JFrame {
 				System.out.println("Tab: " + imageIndex + " - " + imageIndex);
 			}
 		});
+		
+		/**
+		 * Grayscale Button Listener
+		 */
 		btnGrayScale.addMouseListener(new MouseAdapter() {
 			@Override
 			public void mouseClicked(MouseEvent e) {
@@ -285,6 +299,9 @@ public class Frame extends JFrame {
 			}
 		});
 
+		/**
+		 * Show Original Image Button Listener
+		 */
 		btnShowOriginal.addMouseListener(new MouseAdapter() {
 			@Override
 			public void mouseClicked(MouseEvent e) {
@@ -298,6 +315,9 @@ public class Frame extends JFrame {
 			}
 		});
 
+		/**
+		 * Show Properties Button Listener
+		 */
 		btnProperties.addMouseListener(new MouseAdapter() {
 			@Override
 			public void mouseClicked(MouseEvent e) {
@@ -317,57 +337,16 @@ public class Frame extends JFrame {
 			}
 		});
 
+		/**
+		 * Open Histogram Button Listener
+		 */
 		btnHistogram.addMouseListener(new MouseAdapter() {
 			@Override
 			public void mouseClicked(MouseEvent e) {
 				if (imageIndex < 0)
 					return;
 				JFrame frame = new JFrame("Histogram");
-				// frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 				frame.setLayout(new BorderLayout());
-				
-				
-				
-				popup = new JPopupMenu("Edit");
-				JCheckBoxMenuItem red = new JCheckBoxMenuItem("Red", true);
-				JCheckBoxMenuItem green = new JCheckBoxMenuItem("Green", true);
-				JCheckBoxMenuItem blue = new JCheckBoxMenuItem("Blue", true);
-				/*
-				frame.addMouseListener(new MouseAdapter() {
-					public void mouseClicked(MouseEvent e) {
-						popupmenu.show(e.getComponent(), e.getX(), e.getY());
-					}
-				});*/
-				red.addItemListener(new ItemListener() {
-					public void itemStateChanged(ItemEvent e) {
-						if (red.getState()) {
-							// PLOT RED
-						} else {
-							// DONT PLOT RED
-						}
-					}
-				});
-				green.addItemListener(new ItemListener() {
-					public void itemStateChanged(ItemEvent e) {
-						if (green.getState()) {
-							// PLOT RED
-						} else {
-							// DONT PLOT RED
-						}
-					}
-				});
-				blue.addItemListener(new ItemListener() {
-					public void itemStateChanged(ItemEvent e) {
-						if (blue.getState()) {
-							// PLOT RED
-						} else {
-							// DONT PLOT RED
-						}
-					}
-				});
-				popup.add(red);
-				popup.add(green);
-				popup.add(blue);
 				
 				if (imagePanels.get(imageIndex).isShowOriginal())
 					frame.add(new JScrollPane(new Histogram(imagePanels.get(imageIndex).getOriginal())));
@@ -408,23 +387,6 @@ public class Frame extends JFrame {
 		}
 
 		return new Dimension(new_width, new_height);
-	}
-	
-	class PopupListener extends MouseAdapter {
-	    public void mousePressed(MouseEvent e) {
-	        maybeShowPopup(e);
-	    }
-
-	    public void mouseReleased(MouseEvent e) {
-	        maybeShowPopup(e);
-	    }
-
-	    private void maybeShowPopup(MouseEvent e) {
-	        if (e.isPopupTrigger()) {
-	            popup.show(e.getComponent(),
-	                       e.getX(), e.getY());
-	        }
-	    }
 	}
 
 }

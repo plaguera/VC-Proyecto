@@ -36,7 +36,8 @@ public class Histogram extends JPanel {
 		Dimension prefSize = new Dimension(width, 256);
 		setMinimumSize(minSize);
 		setPreferredSize(prefSize);
-		
+		if(isGrayscale(rgbValues))
+			return;
 		showRed = true;
 		showGreen = true;
 		showBlue = true;
